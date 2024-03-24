@@ -1,3 +1,13 @@
+"""
+Title: Triage
+Author: Charles Bostwick
+Website: www.CharlesCBostwick.com
+GitHub: https://github.com/AwaywithCharles
+License: MIT
+Note: This is still a work in progress!!!
+Goals: Add functions to add disabilitys and integrate with the 38 CFR to calculate estimated ratings
+"""
+
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox, simpledialog
@@ -73,7 +83,7 @@ class MainApplication(tk.Tk):
     def create_new_user(self, username):
         user_profile = UserProfile(username=username)
         self.show_user_info_frame(user_profile)
-        # Assuming a structure that includes disabilities; modify as necessary
+
         user_data = {
             "username": username,
             "preferences": {},
@@ -98,7 +108,6 @@ class MainApplication(tk.Tk):
             return None
 
     def show_user_info_frame(self, user_profile):
-        # This method now accepts a UserProfile instance instead of just a username
         self.main_frame.pack_forget()
         user_info_frame = UserInfoFrame(self, user_profile)
         user_info_frame.pack(fill="both", expand=True)
@@ -164,9 +173,7 @@ class UserInfoFrame(tk.Frame):
         self.init_ui()
 
     def init_ui(self):
-        # Setup UI elements like labels, entries for spouse and children here
 
-        # Disability Rating Dropdown
         tk.Label(self, text="Disability Rating:").grid(row=6, column=0, sticky="w")
         self.disability_rating_var = tk.StringVar()
         disability_options = ["0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
@@ -174,11 +181,9 @@ class UserInfoFrame(tk.Frame):
         self.disability_rating_dropdown.grid(row=6, column=1, sticky="w")
         self.disability_rating_dropdown.set("0")  # Default to 0%
         
-        # Button for Calculating Benefits
         tk.Button(self, text="Calculate Benefits", command=self.calculate_benefits).grid(row=7, column=0, columnspan=2)
 
     def calculate_benefits(self):
-        # Convert children's information from entries to a list of dictionaries
         children_info = []
         for entry in self.children_entries:
             child_name = entry.get()
@@ -274,9 +279,7 @@ class UserInfoFrame(tk.Frame):
     def save_profile(self):
         self.user_profile.spouse = self.spouse_name_var.get() if self.has_spouse_var.get() else None
         self.user_profile.children = [entry.get() for entry, _ in self.children_entries]
-        # Logic to save the user profile to file or other storage should be implemented here
         messagebox.showinfo("Success", "Profile updated successfully.")
-
 
 class DisabilitySelectionFrame(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
