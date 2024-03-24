@@ -1,7 +1,7 @@
 # Triage - A VA Disability Claim Assistant
 
 ## About
-Triage is a desktop application designed to assist veterans in managing their VA disability claims. It integrates with the 38 CFR to calculate estimated ratings based on the disabilities entered by the user. This tool aims to simplify the process of understanding and applying for disability benefits.
+Triage is a desktop application designed to assist veterans in managing their VA disability claims. It integrates with the 38 CFR to calculate estimated ratings based on the disabilities entered by the user. This tool aims to simplify the process of understanding and applying for disability benefits. It still a complete work of progress and I am slowly implementing features and additions to it. Right now I am just creating the framework for it to do what I wish for it to be able to accomplish.
 
 ### Author
 Charles Bostwick  
