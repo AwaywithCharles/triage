@@ -360,6 +360,13 @@ class CalculateBenefits:
 
         return base_payment
 
+class Disability:
+    def __init__(self, name, diagnostic_code, rating, notes=None):
+        self.name = name
+        self.diagnostic_code = diagnostic_code
+        self.rating = rating
+        self.notes = notes
+
 
 if __name__ == "__main__":
     app = MainApplication()
