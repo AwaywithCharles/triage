@@ -201,38 +201,46 @@ class MainApplication(tk.Tk):
 
     # This method saves the new user data from the dialog/form.
     def save_new_user_data(self):
+        if not self.validate_profile_data():
+            return  # Stop saving if validation fails
+
+        # Gather input values once
         dod_id = self.dod_id_var.get().strip()
+        name = self.name_var.get().strip()
+        date_of_birth = self.date_of_birth_var.get().strip()
+        spouse_name = self.spouse_name_var.get().strip() if self.has_spouse.get() else ""
+        dependents = [var.get() for _, var, _ in self.child_entries] if self.has_children.get() else []
 
-        # Validate the DoD ID
-        if not dod_id.isdigit() or len(dod_id) != 10:
-            messagebox.showerror("Error", "DoD ID must be exactly 10 digits.")
-            return
+        # Prepare user profile data
+        user_profile = {
+            "dod_id": dod_id,
+            "name": name,
+            "date_of_birth": date_of_birth,
+            "marital_status": "Married" if self.has_spouse.get() else "Single",
+            "spouse_name": spouse_name,
+            "dependents": dependents,
+        }
 
-        # Extracting values from potentially dynamic fields
-        name = self.name_var.get()
-        date_of_birth = self.date_of_birth_var.get()
-        marital_status = "Married" if self.marital_status_var.get() else "Single"
-        spouse_name = self.spouse_name_var.get() if self.marital_status_var.get() else None
-        dependents = [child_var.get() for child_var in self.children_vars] if self.has_children_var.get() else []
-
+        # Attempt to save the user profile to a file
         try:
-            user_profile = UserProfile(
-                dod_id=dod_id,
-                name=name,
-                date_of_birth=date_of_birth,
-                marital_status=marital_status,
-                spouse=spouse_name,
-                dependents=dependents,
-            )
             filepath = os.path.join(os.getcwd(), f"{dod_id}.json")
             with open(filepath, 'w') as file:
-                # Convert the UserProfile object to a dictionary for JSON serialization
-                json.dump(user_profile.to_dict(), file)
+                json.dump(user_profile, file)  # Directly save the dictionary
 
             messagebox.showinfo("Success", "Profile saved successfully.")
             self.new_user_window.destroy()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save profile: {e}")
+
+    def validate_profile_data(self):
+        # Basic validation checks
+        if not self.dod_id_var.get().isdigit() or len(self.dod_id_var.get()) != 10:
+            messagebox.showerror("Error", "DoD ID must be exactly 10 digits long.")
+            return False
+        if not self.name_var.get().strip():
+            messagebox.showerror("Error", "Name cannot be empty.")
+            return False
+        return True
 
     # Load an existing user profile from a JSON file, if it exists.
     def load_user(self, dod_id):
