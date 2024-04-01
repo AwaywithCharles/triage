@@ -13,6 +13,8 @@ from tkinter import ttk
 from tkinter import messagebox, simpledialog
 import os
 import json
+import pandas
+import matplotlib
 
 # Main Application Class.
 # Setting up the main window and functionalities.
@@ -37,7 +39,7 @@ class MainApplication(tk.Tk):
         
         # File menu
         file_menu = tk.Menu(self.menu_bar, tearoff=0, bg="black", fg="gold")
-        file_menu.add_command(label="New Person", command=self.new_user_dialog)  # Add New Person
+                file_menu.add_command(label="New Person", command=self.create_new_user_dialog)
         file_menu.add_command(label="Load Person", command=self.load_user_dialog)  # Add Load Person
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.on_exit)
@@ -111,6 +113,60 @@ class MainApplication(tk.Tk):
         print(f"User {username} created successfully.")
 
         return user_profile
+    
+    def create_new_user_dialog(self):
+        self.new_user_window = tk.Toplevel(self)
+        self.new_user_window.title("New User")
+        self.new_user_window.geometry("400x600")  # Adjust size as necessary
+        
+        # Define user details fields
+        fields = ['Username', 'Name', 'Date of Birth', 'Marital Status', 'DoD ID', 'Disability Rating', 'Spouse', 'Dependents']
+        self.new_user_entries = {}
+        
+        for idx, field in enumerate(fields):
+            tk.Label(self.new_user_window, text=f"{field}:").grid(row=idx, column=0, padx=10, pady=5, sticky='w')
+            entry = tk.Entry(self.new_user_window)
+            entry.grid(row=idx, column=1, padx=10, pady=5)
+            self.new_user_entries[field] = entry
+        
+        # Save Profile Button
+        save_button = tk.Button(self.new_user_window, text="Save Profile", command=self.save_new_user_data)
+        save_button.grid(row=len(fields)+1, column=0, columnspan=2, pady=20)
+
+    # This method saves the new user data from the dialog/form.
+    def save_new_user_data(self):
+        # Gather data from form fields
+        data = {field: entry.get() for field, entry in self.new_user_entries.items()}
+        
+        # Validate data here as needed
+        
+        # Ask for confirmation before saving
+        if messagebox.askyesno("Confirm", "Save this profile?"):
+            # Assuming all fields are correctly named and exist in the UserProfile class
+            try:
+                user_profile = UserProfile(
+                    username=data.get('Username', ''),
+                    name=data.get('Name', ''),
+                    date_of_birth=data.get('Date of Birth', ''),
+                    marital_status=data.get('Marital Status', ''),
+                    dod_id=data.get('DoD ID', ''),
+                    disability_rating=int(data.get('Disability Rating', 0)),
+                    spouse=data.get('Spouse', None),
+                    dependents=[dep.strip() for dep in data.get('Dependents', '').split(',')],
+                    spouse_aid_attendance=False
+                )
+                filepath = os.path.join(os.getcwd(), f"{user_profile.username}.json")
+                with open(filepath, 'w') as file:
+                    json.dump(user_profile.__dict__, file)  # Simple approach; add custom serialization later
+
+                messagebox.showinfo("Success", "Profile saved successfully.")
+                self.new_user_window.destroy()  # Close the dialog
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to save profile: {e}")
+        else:
+            # Handle cancellation
+            pass
+
 
     # Load an existing user profile from a JSON file, if it exists.
     def load_user(self, username):
@@ -131,18 +187,46 @@ class MainApplication(tk.Tk):
         self.user_info_frame = UserInfoFrame(self, user_profile)  # Correctly initializes the UserInfoFrame with the user profile
         self.user_info_frame.pack(fill="both", expand=True)
 
-
-    # Dialog to create a new user profile. Prompts for username and creates the profile.
-    def new_user_dialog(self):
-        username = simpledialog.askstring("New User", "Enter new username:")
-        if username:
-            user_profile = self.create_new_user(username)
-            self.show_user_info_frame(user_profile)
-
     # Placeholder functions for editing profiles. To be implemented.
     def edit_profile(self):
         messagebox.showinfo("Edit Profile", "Profile editing functionality not implemented yet.")
     
+    def edit_personal_data(self, user_profile):
+        edit_window = tk.Toplevel(self)
+        edit_window.title("Edit Personal Data")
+        edit_window.geometry("400x500")  #ajust later
+
+        # Create and layout the edit fields
+        fields = ['Name', 'Date of Birth', 'Marital Status', 'DoD ID']
+        entries = {}
+        for idx, field in enumerate(fields, start=1):
+            tk.Label(edit_window, text=f"{field}:").grid(row=idx, column=0, sticky="e", padx=10, pady=5)
+            entry_var = tk.StringVar(value=getattr(user_profile, field.lower().replace(" ", "_"), ""))
+            entry = tk.Entry(edit_window, textvariable=entry_var)
+            entry.grid(row=idx, column=1, padx=10, pady=5)
+            entries[field] = entry_var
+
+        # Special handling for dependents (simplified for now)
+        tk.Label(edit_window, text="Dependents:").grid(row=len(fields)+1, column=0, sticky="e", padx=10, pady=5)
+        dependents_var = tk.StringVar(value=','.join(user_profile.dependents))
+        dependents_entry = tk.Entry(edit_window, textvariable=dependents_var)
+        dependents_entry.grid(row=len(fields)+1, column=1, padx=10, pady=5)
+        entries['Dependents'] = dependents_var
+
+        # Save Button
+        save_button = tk.Button(edit_window, text="Save", 
+                                command=lambda: self.save_user_data(user_profile, entries))
+        save_button.grid(row=len(fields)+2, column=0, columnspan=2, pady=10)    
+    
+    def save_user_data(self, user_profile, entries):
+        # Example: Update the user profile with new data
+        user_profile.name = entries['Name'].get()
+        user_profile.date_of_birth = entries['Date of Birth'].get()
+        user_profile.marital_status = entries['Marital Status'].get()
+        user_profile.dod_id = entries['DoD ID'].get()
+        user_profile.dependents = entries['Dependents'].get().split(',')
+        messagebox.showinfo("Success", "Profile updated successfully.")
+
     # Placeholder functions for opening regulations. To be implemented.
     def open_regulations(self):
         messagebox.showinfo("38 CFR Regulations", "Regulations viewing functionality not implemented yet.")
@@ -161,20 +245,20 @@ class MainApplication(tk.Tk):
 
 # UserProfile class: Represents a user/veteran profile, including personal and disability-related information.
 class UserProfile:
-    def __init__(self, username, disability_rating=0, spouse=None, children=None, spouse_aid_attendance=False):
-        """
-        Initialize a UserProfile instance.
-        :param username: The username of the veteran.
-        :param disability_rating: The disability rating of the veteran.
-        :param spouse: Indicates if the veteran has a spouse.
-        :param children: A list of children.
-        :param spouse_aid_attendance: Indicates if the spouse receives Aid and Attendance benefits.
-        """
+    def __init__(self, username, disability_rating=0, spouse=None, children=None, 
+                 spouse_aid_attendance=False, name="", date_of_birth="", 
+                 marital_status="", dependents=[], dod_id=""):
         self.username = username
         self.disability_rating = disability_rating
         self.spouse = spouse
         self.children = children if children is not None else []
         self.spouse_aid_attendance = spouse_aid_attendance
+        self.name = name
+        self.date_of_birth = date_of_birth
+        self.marital_status = marital_status
+        self.dependents = dependents
+        self.dod_id = dod_id
+
 
       # Method to calculate benefits based on the user's profile. Utilizes a placeholder class `CalculateBenefits`.
     def calculate_benefits(self):
