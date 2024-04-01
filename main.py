@@ -21,7 +21,7 @@ import matplotlib
 class MainApplication(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.user_data = {"username": "", "preferences": {}, "data": {}}
+        self.user_data = {"dod_id": "", "preferences": {}, "data": {}}
         self.configure_application()
         self.create_menus()
         self.initialize_ui()
@@ -39,7 +39,7 @@ class MainApplication(tk.Tk):
         
         # File menu
         file_menu = tk.Menu(self.menu_bar, tearoff=0, bg="black", fg="gold")
-                file_menu.add_command(label="New Person", command=self.create_new_user_dialog)
+        file_menu.add_command(label="New Person", command=self.create_new_user_dialog)
         file_menu.add_command(label="Load Person", command=self.load_user_dialog)  # Add Load Person
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.on_exit)
@@ -81,7 +81,7 @@ class MainApplication(tk.Tk):
         if messagebox.askokcancel("Exit", "Do you really wish to exit?", icon='warning'):
             self.destroy()
 
-    # Load user profile dialog: Asks for username and attempts to load the corresponding profile.
+    # Load user profile dialog: Asks for dod_id and attempts to load the corresponding profile.
     def ask_user_action(self):
         action = messagebox.askquestion("User Action", "Load existing user?")
         if action == 'yes':
@@ -91,27 +91,27 @@ class MainApplication(tk.Tk):
 
     # Load an existing user profile from a JSON file, if it exists.
     def load_user_dialog(self):
-        username = simpledialog.askstring("Load User", "Enter username to load:")
-        if username:
-            self.load_user(username)
+        dod_id = simpledialog.askstring("Load User", "Enter DoD ID # to load:")
+        if dod_id:
+            self.load_user(dod_id)
 
     # Create a new user profile, initializing with default data and saving to a JSON file.
-    def create_new_user(self, username):
-        print("Creating new user with username:", username)
-        user_profile = UserProfile(username=username)
+    def create_new_user(self, dod_id):
+        print("Creating new user with DoD ID:", dod_id)
+        user_profile = UserProfile(dod_id=dod_id)
         self.show_user_info_frame(user_profile)
 
         user_data = {
-            "username": username,
+            "dod_id": dod_id,
             "preferences": {},
             "data": {},
             "disabilities": []  # Placeholder for disability information
         }
         # Save user data to a file
-        file_path = os.path.join(os.getcwd(), f"{username}.json")
+        file_path = os.path.join(os.getcwd(), f"{dod_id}.json")
         with open(file_path, 'w') as file:
             json.dump(user_data, file)
-        print(f"User {username} created successfully.")
+        print(f"User {dod_id} created successfully.")
 
         return user_profile
     
@@ -121,7 +121,7 @@ class MainApplication(tk.Tk):
         self.new_user_window.geometry("400x600")  # Adjust size as necessary
         
         # Define user details fields
-        fields = ['Username', 'Name', 'Date of Birth', 'Marital Status', 'DoD ID', 'Disability Rating', 'Spouse', 'Dependents']
+        fields = ['DoD ID', 'Name', 'Date of Birth', 'Marital Status', 'Disability Rating', 'Spouse', 'Dependents']
         self.new_user_entries = {}
         
         for idx, field in enumerate(fields):
@@ -138,11 +138,16 @@ class MainApplication(tk.Tk):
     def save_new_user_data(self):
         # Gather data from form fields
         data = {field: entry.get() for field, entry in self.new_user_entries.items()}
-        user_id = data.get('DoD ID', '')  # Use DoD ID as user_id
+        dod_id = data.get('DoD ID', '')
+
+        # Validate the DoD ID
+        if not dod_id.isdigit() or len(dod_id) != 10:
+            messagebox.showerror("Error", "DoD ID must be exactly 10 digits.")
+            return
 
         try:
             user_profile = UserProfile(
-                user_id=user_id,
+                dod_id=dod_id,  # Use dod_id here consistently
                 name=data.get('Name', ''),
                 date_of_birth=data.get('Date of Birth', ''),
                 marital_status=data.get('Marital Status', ''),
@@ -150,8 +155,9 @@ class MainApplication(tk.Tk):
                 spouse=data.get('Spouse', None),
                 dependents=[dep.strip() for dep in data.get('Dependents', '').split(',') if dep.strip()],
             )
-            filepath = os.path.join(os.getcwd(), f"{user_id}.json")  # Filename is now based on user_id
+            filepath = os.path.join(os.getcwd(), f"{dod_id}.json")  # Filename is now correctly based on dod_id
             with open(filepath, 'w') as file:
+                # Assuming your UserProfile class has a method to_dict() to convert the object into a dictionary
                 json.dump(user_profile.to_dict(), file)
             
             messagebox.showinfo("Success", "Profile saved successfully.")
@@ -159,18 +165,16 @@ class MainApplication(tk.Tk):
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save profile: {e}")
 
-
-
     # Load an existing user profile from a JSON file, if it exists.
-    def load_user(self, username):
-        file_path = os.path.join(os.getcwd(), f"{username}.json")
+    def load_user(self, dod_id):
+        file_path = os.path.join(os.getcwd(), f"{dod_id}.json")
         if os.path.exists(file_path):
             with open(file_path, 'r') as file:
                 data = json.load(file)
             user_profile = UserProfile(**data)
             self.show_user_info_frame(user_profile)
         else:
-            tk.messagebox.showerror("Error", f"No such user: {username}")
+            tk.messagebox.showerror("Error", f"No such user: {dod_id}")
             return None
 
     def show_user_info_frame(self, user_profile):
@@ -187,14 +191,16 @@ class MainApplication(tk.Tk):
     def edit_personal_data(self, user_profile):
         edit_window = tk.Toplevel(self)
         edit_window.title("Edit Personal Data")
-        edit_window.geometry("400x500")  #ajust later
+        edit_window.geometry("400x500")  # Adjust size as necessary
 
         # Create and layout the edit fields
         fields = ['Name', 'Date of Birth', 'Marital Status', 'DoD ID']
         entries = {}
         for idx, field in enumerate(fields, start=1):
+            # Use the correct attribute from user_profile for the initial value
+            initial_value = getattr(user_profile, field.lower().replace(" ", "_"), "") if field != 'DoD ID' else user_profile.dod_id
             tk.Label(edit_window, text=f"{field}:").grid(row=idx, column=0, sticky="e", padx=10, pady=5)
-            entry_var = tk.StringVar(value=getattr(user_profile, field.lower().replace(" ", "_"), ""))
+            entry_var = tk.StringVar(value=initial_value)
             entry = tk.Entry(edit_window, textvariable=entry_var)
             entry.grid(row=idx, column=1, padx=10, pady=5)
             entries[field] = entry_var
@@ -205,12 +211,15 @@ class MainApplication(tk.Tk):
         dependents_entry = tk.Entry(edit_window, textvariable=dependents_var)
         dependents_entry.grid(row=len(fields)+1, column=1, padx=10, pady=5)
         entries['Dependents'] = dependents_var
-        print("Creating new user with username:", username)
-        # Save Button
-        save_button = tk.Button(edit_window, text="Save", 
-                                command=lambda: self.save_user_data(user_profile, entries))
-        save_button.grid(row=len(fields)+2, column=0, columnspan=2, pady=10)    
-    
+
+        # Correctly refer to the user_profile.dod_id in the print statement if needed
+        print("Editing profile for DoD ID:", user_profile.dod_id)
+
+        # Adjust save button command to correctly pass user_profile and entry data
+        save_button = tk.Button(edit_window, text="Save", command=lambda: self.save_user_data(user_profile, entries))
+        save_button.grid(row=len(fields)+2, column=0, columnspan=2, pady=10)
+
+        
     def save_user_data(self, user_profile, entries):
         # Example: Update the user profile with new data
         user_profile.name = entries['Name'].get()
@@ -225,23 +234,24 @@ class MainApplication(tk.Tk):
         messagebox.showinfo("38 CFR Regulations", "Regulations viewing functionality not implemented yet.")
 
     # 
-    def load_user(self, username):
-        file_path = os.path.join(os.getcwd(), f"{username}.json")
+    def load_user(self, dod_id):
+        file_path = os.path.join(os.getcwd(), f"{dod_id}.json")
         if os.path.exists(file_path):
             with open(file_path, 'r') as file:
                 data = json.load(file)
             user_profile = UserProfile(**data)
             self.show_user_info_frame(user_profile)
         else:
-            tk.messagebox.showerror("Error", f"No such user: {username}")
+            tk.messagebox.showerror("Error", f"No such user: {dod_id}")
             return None
 
 # UserProfile class: Represents a user/veteran profile, including personal and disability-related information.
 class UserProfile:
-    def __init__(self, user_id, name="", disability_rating=0, spouse=None, children=None, 
+    # Ensure there's only one dod_id parameter in the method signature.
+    def __init__(self, dod_id, name="", disability_rating=0, spouse=None, children=None, 
                  spouse_aid_attendance=False, date_of_birth="", 
-                 marital_status="", dependents=[], dod_id=""):
-        self.user_id = user_id  # refactoring from username, so it goes off their dod id number isntead
+                 marital_status="", dependents=[]):
+        self.dod_id = dod_id
         self.name = name
         self.disability_rating = disability_rating
         self.spouse = spouse
@@ -314,7 +324,7 @@ class UserInfoFrame(tk.Frame):
         self.init_ui()
 
     def init_ui(self):
-        tk.Label(self, text=f"Profile: {self.user_profile.username}").grid(row=0, columnspan=3, pady=(10, 10))
+        tk.Label(self, text=f"Profile: {self.user_profile.dod_id}").grid(row=0, columnspan=3, pady=(10, 10))
 
         # Checkbox for spouse
         self.has_spouse_var = tk.BooleanVar(value=bool(self.user_profile.spouse))
