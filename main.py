@@ -14,6 +14,8 @@ from tkinter import messagebox, simpledialog
 import os
 import json
 
+# Main Application Class.
+# Setting up the main window and functionalities.
 class MainApplication(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -22,11 +24,13 @@ class MainApplication(tk.Tk):
         self.create_menus()
         self.initialize_ui()
 
+    # Configure main application window properties such as title, background, and size.
     def configure_application(self):
         self.title("Triage - a VA Disability Claim assistant")
         self.configure(bg="black")
         self.geometry("800x600")  # Width x Height
 
+    # Create the application menu bar and items, adding functionality for user interaction.
     def create_menus(self):
         self.menu_bar = tk.Menu(self, bg="black", fg="gold")
         
@@ -40,18 +44,21 @@ class MainApplication(tk.Tk):
         self.add_menu_item("Resources", [("38 CFR Regulations", self.open_regulations)])
         
         self.config(menu=self.menu_bar)
-
+    
+    # Helper function to add individual menu items to the menu bar.
     def add_menu_item(self, menu_title, commands):
         menu = tk.Menu(self.menu_bar, tearoff=0, bg="black", fg="gold")
         for label, command in commands:
             menu.add_command(label=label, command=command)
         self.menu_bar.add_cascade(label=menu_title, menu=menu)
 
+    # Initialize the main UI frame and call the widget creation function.
     def initialize_ui(self):
         self.main_frame = tk.Frame(self, bg="black")
         self.main_frame.pack(fill="both", expand=True)
         self.create_widgets()
 
+    # Create the initial widgets displayed in the main frame.
     def create_widgets(self):
         welcome_label = tk.Label(self.main_frame, text="Welcome to Triage!", bg="black", fg="gold")
         welcome_label.pack(pady=10)
@@ -64,10 +71,12 @@ class MainApplication(tk.Tk):
         load_person_button = tk.Button(self.main_frame, text="Load Person", command=self.load_user_dialog, bg="black", fg="gold")
         load_person_button.pack(side="right", padx=(20, 100), pady=20)
 
+    # Function to handle the application exit command.
     def on_exit(self):
         if messagebox.askokcancel("Exit", "Do you really wish to exit?", icon='warning'):
             self.destroy()
 
+    # Load user profile dialog: Asks for username and attempts to load the corresponding profile.
     def ask_user_action(self):
         action = messagebox.askquestion("User Action", "Load existing user?")
         if action == 'yes':
@@ -75,11 +84,13 @@ class MainApplication(tk.Tk):
         else:
             self.new_user_dialog()
 
+    # Load an existing user profile from a JSON file, if it exists.
     def load_user_dialog(self):
         username = simpledialog.askstring("Load User", "Enter username to load:")
         if username:
             self.load_user(username)
 
+    # Create a new user profile, initializing with default data and saving to a JSON file.
     def create_new_user(self, username):
         user_profile = UserProfile(username=username)
         self.show_user_info_frame(user_profile)
@@ -96,6 +107,7 @@ class MainApplication(tk.Tk):
             json.dump(user_data, file)
         print(f"User {username} created successfully.")
 
+    # Load an existing user profile from a JSON file, if it exists.
     def load_user(self, username):
         file_path = os.path.join(os.getcwd(), f"{username}.json")
         if os.path.exists(file_path):
@@ -107,23 +119,28 @@ class MainApplication(tk.Tk):
             tk.messagebox.showerror("Error", f"No such user: {username}")
             return None
 
+    # Transition to displaying user info after creating/loading a user profile
     def show_user_info_frame(self, user_profile):
         self.main_frame.pack_forget()
         user_info_frame = UserInfoFrame(self, user_profile)
         user_info_frame.pack(fill="both", expand=True)
 
+    # Dialog to create a new user profile. Prompts for username and creates the profile.
     def new_user_dialog(self):
         username = simpledialog.askstring("New User", "Enter new username:")
         if username:
             self.create_new_user(username)
             self.show_user_info_frame(username)  # Transition to the user info frame
     
+    # Placeholder functions for editing profiles. To be implemented.
     def edit_profile(self):
         messagebox.showinfo("Edit Profile", "Profile editing functionality not implemented yet.")
     
+    # Placeholder functions for opening regulations. To be implemented.
     def open_regulations(self):
         messagebox.showinfo("38 CFR Regulations", "Regulations viewing functionality not implemented yet.")
 
+    # 
     def load_user(self, username):
         file_path = os.path.join(os.getcwd(), f"{username}.json")
         if os.path.exists(file_path):
@@ -135,7 +152,7 @@ class MainApplication(tk.Tk):
             tk.messagebox.showerror("Error", f"No such user: {username}")
             return None
 
-
+# UserProfile class: Represents a user/veteran profile, including personal and disability-related information.
 class UserProfile:
     def __init__(self, username, disability_rating=0, spouse=None, children=None, spouse_aid_attendance=False):
         """
@@ -152,10 +169,12 @@ class UserProfile:
         self.children = children if children is not None else []
         self.spouse_aid_attendance = spouse_aid_attendance
 
+      # Method to calculate benefits based on the user's profile. Utilizes a placeholder class `CalculateBenefits`.
     def calculate_benefits(self):
         """
         Calculate the benefits using the CalculateBenefits class.
         :return: The monthly payment based on the veteran's profile.
+        Need to get correct math from 38CFR Audit doc?
         """
         benefits_calculator = CalculateBenefits(
             disability_rating=self.disability_rating,
@@ -165,7 +184,8 @@ class UserProfile:
         )
         return benefits_calculator.get_monthly_payment()
 
-
+# UserInfoFrame class: A frame to display and edit information about the user profile. Includes functionality to add dependents.
+# update to modify the first instead of replacing it
 class UserInfoFrame(tk.Frame):
     def __init__(self, parent, user_profile, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
@@ -183,6 +203,7 @@ class UserInfoFrame(tk.Frame):
         
         tk.Button(self, text="Calculate Benefits", command=self.calculate_benefits).grid(row=7, column=0, columnspan=2)
 
+    # CalculateBenefits class: Calculates the estimated monthly benefits based on disability rating, marital status, and dependents.
     def calculate_benefits(self):
         children_info = []
         for entry in self.children_entries:
