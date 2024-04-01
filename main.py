@@ -10,7 +10,8 @@ Goals: Add functions to add disabilitys and integrate with the 38 CFR to calcula
 
 import tkinter as tk
 from tkinter import ttk
-from tkinter import messagebox, simpledialog
+from tkinter import Label, Entry, Radiobutton, Checkbutton, Button, Toplevel, StringVar, BooleanVar, messagebox, simpledialog
+from tkcalendar import DateEntry
 import os
 import json
 import pandas
@@ -96,70 +97,138 @@ class MainApplication(tk.Tk):
             self.load_user(dod_id)
 
     # Create a new user profile, initializing with default data and saving to a JSON file.
-    def create_new_user(self, dod_id):
-        print("Creating new user with DoD ID:", dod_id)
-        user_profile = UserProfile(dod_id=dod_id)
-        self.show_user_info_frame(user_profile)
-
-        user_data = {
-            "dod_id": dod_id,
-            "preferences": {},
-            "data": {},
-            "disabilities": []  # Placeholder for disability information
-        }
-        # Save user data to a file
-        file_path = os.path.join(os.getcwd(), f"{dod_id}.json")
-        with open(file_path, 'w') as file:
-            json.dump(user_data, file)
-        print(f"User {dod_id} created successfully.")
-
-        return user_profile
-    
     def create_new_user_dialog(self):
         self.new_user_window = tk.Toplevel(self)
         self.new_user_window.title("New User")
-        self.new_user_window.geometry("400x600")  # Adjust size as necessary
-        
-        # Define user details fields
-        fields = ['DoD ID', 'Name', 'Date of Birth', 'Marital Status', 'Disability Rating', 'Spouse', 'Dependents']
-        self.new_user_entries = {}
-        
-        for idx, field in enumerate(fields):
-            tk.Label(self.new_user_window, text=f"{field}:").grid(row=idx, column=0, padx=10, pady=5, sticky='w')
-            entry = tk.Entry(self.new_user_window)
-            entry.grid(row=idx, column=1, padx=10, pady=5)
-            self.new_user_entries[field] = entry
-        
+        self.new_user_window.geometry("400x600")
+
+        # Define StringVars for user input
+        self.dod_id_var = tk.StringVar()
+        self.name_var = tk.StringVar()
+        self.date_of_birth_var = tk.StringVar()
+        self.spouse_name_var = tk.StringVar()
+
+        # Define BooleanVars for yes/no choices
+        self.has_spouse = tk.BooleanVar(value=False)
+        self.has_children = tk.BooleanVar(value=False)
+
+        # User input fields
+        tk.Label(self.new_user_window, text="DoD ID:").grid(row=0, column=0, sticky='w')
+        tk.Entry(self.new_user_window, textvariable=self.dod_id_var).grid(row=0, column=1)
+
+        tk.Label(self.new_user_window, text="Name:").grid(row=1, column=0, sticky='w')
+        tk.Entry(self.new_user_window, textvariable=self.name_var).grid(row=1, column=1)
+
+        tk.Label(self.new_user_window, text="Date of Birth:").grid(row=2, column=0, sticky='w')
+        DateEntry(self.new_user_window, textvariable=self.date_of_birth_var, date_pattern='y-mm-dd').grid(row=2, column=1)
+
+        # Marital Status
+        Label(self.new_user_window, text="Marital Status:").grid(row=3, column=0, sticky='w')
+        Radiobutton(self.new_user_window, text="Spouse", variable=self.has_spouse, value=True, command=self.toggle_spouse_field).grid(row=3, column=1)
+        Radiobutton(self.new_user_window, text="No Spouse", variable=self.has_spouse, value=False, command=self.toggle_spouse_field).grid(row=4, column=1)
+
+        # Dynamic Spouse Name Field Placeholder (invisible at start)
+        self.spouse_name_label = Label(self.new_user_window, text="Spouse Name:")
+        self.spouse_name_entry = Entry(self.new_user_window, textvariable=self.spouse_name_var)
+
+        # Add to the grid in create_new_user_dialog
+        tk.Label(self.new_user_window, text="Children:").grid(row=6, column=0, sticky='w')
+        tk.Radiobutton(self.new_user_window, text="Children", variable=self.has_children, value=True, command=self.toggle_children_fields).grid(row=6, column=1)
+        tk.Radiobutton(self.new_user_window, text="No Children", variable=self.has_children, value=False, command=self.toggle_children_fields).grid(row=6, column=2)
+
+        # Frame to dynamically add child entries
+        self.children_entries_frame = tk.Frame(self.new_user_window)
+        self.children_entries_frame.grid(row=7, column=0, columnspan=2, sticky='ew', pady=(5,0))
+
+        # List to keep track of child entries
+        self.child_entries = []
+
         # Save Profile Button
-        save_button = tk.Button(self.new_user_window, text="Save Profile", command=self.save_new_user_data)
-        save_button.grid(row=len(fields)+1, column=0, columnspan=2, pady=20)
+        tk.Button(self.new_user_window, text="Save Profile", command=self.save_new_user_data).grid(row=100, column=0, columnspan=2, pady=20)
+
+    def toggle_spouse_field(self):
+        if self.has_spouse.get():
+            # Show Spouse Name fields
+            self.spouse_name_label.grid(row=5, column=0, sticky='w', pady=(10,0))
+            self.spouse_name_entry.grid(row=5, column=1, sticky="ew")
+            self.regrid_children_section(starting_row=6)  # Adjust starting row for children section
+        else:
+            # Hide Spouse Name fields
+            self.spouse_name_label.grid_remove()
+            self.spouse_name_entry.grid_remove()
+            self.regrid_children_section(starting_row=5)  # Adjust starting row for children section back
+    
+    def toggle_children_fields(self):
+        if self.has_children.get():
+            # Show "Add Child" button if not already visible
+            if not hasattr(self, 'add_child_button'):  # Add button if it doesn't exist
+                self.add_child_button = tk.Button(self.children_entries_frame, text="+ Add Child", command=self.add_child_entry)
+                self.add_child_button.grid(row=0, column=0, sticky='w', pady=2)
+            else:
+                # Make sure it's visible
+                self.add_child_button.grid()
+        else:
+            # Hide "Add Child" button and remove all child entries
+            if hasattr(self, 'add_child_button'):
+                self.add_child_button.grid_remove()
+            for child_entry, var, remove_button in self.child_entries:
+                child_entry.grid_remove()
+                remove_button.grid_remove()
+            self.child_entries.clear()
+
+    def add_child_entry(self):
+        row = 7 + len(self.child_entries)  # Assuming row 7 is where children entries start
+        child_var = tk.StringVar()
+        child_entry = tk.Entry(self.children_entries_frame, textvariable=child_var)
+        child_entry.grid(row=row, column=0, padx=5, pady=2)
+        
+        remove_button = tk.Button(self.children_entries_frame, text="Remove", command=lambda var=child_var: self.remove_child_entry(child_entry, var))
+        remove_button.grid(row=row, column=1, padx=5, pady=2)
+        
+        # Append the entry, variable, and button to the list
+        self.child_entries.append((child_entry, child_var, remove_button))
+        
+    def remove_child_entry(self, entry, var):
+        # Remove the specified entry widget and its remove button
+        entry.destroy()
+        # Find the associated remove button and destroy it
+        associated_button = next((button for e, v, button in self.child_entries if v == var), None)
+        if associated_button:
+            associated_button.destroy()
+
+        # Update the list to remove the tuple associated with the removed entry
+        self.child_entries = [(e, v, b) for e, v, b in self.child_entries if v != var]
 
     # This method saves the new user data from the dialog/form.
     def save_new_user_data(self):
-        # Gather data from form fields
-        data = {field: entry.get() for field, entry in self.new_user_entries.items()}
-        dod_id = data.get('DoD ID', '')
+        dod_id = self.dod_id_var.get().strip()
 
         # Validate the DoD ID
         if not dod_id.isdigit() or len(dod_id) != 10:
             messagebox.showerror("Error", "DoD ID must be exactly 10 digits.")
             return
 
+        # Extracting values from potentially dynamic fields
+        name = self.name_var.get()
+        date_of_birth = self.date_of_birth_var.get()
+        marital_status = "Married" if self.marital_status_var.get() else "Single"
+        spouse_name = self.spouse_name_var.get() if self.marital_status_var.get() else None
+        dependents = [child_var.get() for child_var in self.children_vars] if self.has_children_var.get() else []
+
         try:
             user_profile = UserProfile(
-                dod_id=dod_id,  # Use dod_id here consistently
-                name=data.get('Name', ''),
-                date_of_birth=data.get('Date of Birth', ''),
-                marital_status=data.get('Marital Status', ''),
-                disability_rating=int(data.get('Disability Rating', '0')),
-                spouse=data.get('Spouse', None),
-                dependents=[dep.strip() for dep in data.get('Dependents', '').split(',') if dep.strip()],
+                dod_id=dod_id,
+                name=name,
+                date_of_birth=date_of_birth,
+                marital_status=marital_status,
+                spouse=spouse_name,
+                dependents=dependents,
             )
-            filepath = os.path.join(os.getcwd(), f"{dod_id}.json")  # Filename is now correctly based on dod_id
+            filepath = os.path.join(os.getcwd(), f"{dod_id}.json")
             with open(filepath, 'w') as file:
-                # Assuming your UserProfile class has a method to_dict() to convert the object into a dictionary
+                # Convert the UserProfile object to a dictionary for JSON serialization
                 json.dump(user_profile.to_dict(), file)
-            
+
             messagebox.showinfo("Success", "Profile saved successfully.")
             self.new_user_window.destroy()
         except Exception as e:
