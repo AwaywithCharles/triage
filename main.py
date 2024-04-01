@@ -23,6 +23,7 @@ class MainApplication(tk.Tk):
         self.configure_application()
         self.create_menus()
         self.initialize_ui()
+        self.user_info_frame = None
 
     # Configure main application window properties such as title, background, and size.
     def configure_application(self):
@@ -35,13 +36,23 @@ class MainApplication(tk.Tk):
         self.menu_bar = tk.Menu(self, bg="black", fg="gold")
         
         # File menu
-        self.add_menu_item("File", [("Exit", self.on_exit)])
+        file_menu = tk.Menu(self.menu_bar, tearoff=0, bg="black", fg="gold")
+        file_menu.add_command(label="New Person", command=self.new_user_dialog)  # Add New Person
+        file_menu.add_command(label="Load Person", command=self.load_user_dialog)  # Add Load Person
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self.on_exit)
         
-        # User Profile
-        self.add_menu_item("Profile", [("Edit Profile", self.edit_profile)])
+        self.menu_bar.add_cascade(label="File", menu=file_menu)
         
-        # Resources
-        self.add_menu_item("Resources", [("38 CFR Regulations", self.open_regulations)])
+        # User Profile (If you have other options to add, keep this section)
+        profile_menu = tk.Menu(self.menu_bar, tearoff=0, bg="black", fg="gold")
+        profile_menu.add_command(label="Edit Profile", command=self.edit_profile)
+        self.menu_bar.add_cascade(label="Profile", menu=profile_menu)
+        
+        # Resources (If you have other options to add, keep this section)
+        resources_menu = tk.Menu(self.menu_bar, tearoff=0, bg="black", fg="gold")
+        resources_menu.add_command(label="38 CFR Regulations", command=self.open_regulations)
+        self.menu_bar.add_cascade(label="Resources", menu=resources_menu)
         
         self.config(menu=self.menu_bar)
     
@@ -62,14 +73,6 @@ class MainApplication(tk.Tk):
     def create_widgets(self):
         welcome_label = tk.Label(self.main_frame, text="Welcome to Triage!", bg="black", fg="gold")
         welcome_label.pack(pady=10)
-
-        # New Person Button
-        new_person_button = tk.Button(self.main_frame, text="New Person", command=self.new_user_dialog, bg="black", fg="gold")
-        new_person_button.pack(side="left", padx=(100, 20), pady=20)
-
-        # Load Person Button
-        load_person_button = tk.Button(self.main_frame, text="Load Person", command=self.load_user_dialog, bg="black", fg="gold")
-        load_person_button.pack(side="right", padx=(20, 100), pady=20)
 
     # Function to handle the application exit command.
     def on_exit(self):
@@ -107,6 +110,8 @@ class MainApplication(tk.Tk):
             json.dump(user_data, file)
         print(f"User {username} created successfully.")
 
+        return user_profile
+
     # Load an existing user profile from a JSON file, if it exists.
     def load_user(self, username):
         file_path = os.path.join(os.getcwd(), f"{username}.json")
@@ -119,19 +124,21 @@ class MainApplication(tk.Tk):
             tk.messagebox.showerror("Error", f"No such user: {username}")
             return None
 
-    # Transition to displaying user info after creating/loading a user profile
     def show_user_info_frame(self, user_profile):
-        self.main_frame.pack_forget()
-        user_info_frame = UserInfoFrame(self, user_profile)
-        user_info_frame.pack(fill="both", expand=True)
+        if self.user_info_frame is not None:
+            self.user_info_frame.destroy()
+
+        self.user_info_frame = UserInfoFrame(self, user_profile)  # Correctly initializes the UserInfoFrame with the user profile
+        self.user_info_frame.pack(fill="both", expand=True)
+
 
     # Dialog to create a new user profile. Prompts for username and creates the profile.
     def new_user_dialog(self):
         username = simpledialog.askstring("New User", "Enter new username:")
         if username:
-            self.create_new_user(username)
-            self.show_user_info_frame(username)  # Transition to the user info frame
-    
+            user_profile = self.create_new_user(username)
+            self.show_user_info_frame(user_profile)
+
     # Placeholder functions for editing profiles. To be implemented.
     def edit_profile(self):
         messagebox.showinfo("Edit Profile", "Profile editing functionality not implemented yet.")
