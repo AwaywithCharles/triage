@@ -97,6 +97,7 @@ class MainApplication(tk.Tk):
 
     # Create a new user profile, initializing with default data and saving to a JSON file.
     def create_new_user(self, username):
+        print("Creating new user with username:", username)
         user_profile = UserProfile(username=username)
         self.show_user_info_frame(user_profile)
 
@@ -137,35 +138,27 @@ class MainApplication(tk.Tk):
     def save_new_user_data(self):
         # Gather data from form fields
         data = {field: entry.get() for field, entry in self.new_user_entries.items()}
-        
-        # Validate data here as needed
-        
-        # Ask for confirmation before saving
-        if messagebox.askyesno("Confirm", "Save this profile?"):
-            # Assuming all fields are correctly named and exist in the UserProfile class
-            try:
-                user_profile = UserProfile(
-                    username=data.get('Username', ''),
-                    name=data.get('Name', ''),
-                    date_of_birth=data.get('Date of Birth', ''),
-                    marital_status=data.get('Marital Status', ''),
-                    dod_id=data.get('DoD ID', ''),
-                    disability_rating=int(data.get('Disability Rating', 0)),
-                    spouse=data.get('Spouse', None),
-                    dependents=[dep.strip() for dep in data.get('Dependents', '').split(',')],
-                    spouse_aid_attendance=False
-                )
-                filepath = os.path.join(os.getcwd(), f"{user_profile.username}.json")
-                with open(filepath, 'w') as file:
-                    json.dump(user_profile.__dict__, file)  # Simple approach; add custom serialization later
+        user_id = data.get('DoD ID', '')  # Use DoD ID as user_id
 
-                messagebox.showinfo("Success", "Profile saved successfully.")
-                self.new_user_window.destroy()  # Close the dialog
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to save profile: {e}")
-        else:
-            # Handle cancellation
-            pass
+        try:
+            user_profile = UserProfile(
+                user_id=user_id,
+                name=data.get('Name', ''),
+                date_of_birth=data.get('Date of Birth', ''),
+                marital_status=data.get('Marital Status', ''),
+                disability_rating=int(data.get('Disability Rating', '0')),
+                spouse=data.get('Spouse', None),
+                dependents=[dep.strip() for dep in data.get('Dependents', '').split(',') if dep.strip()],
+            )
+            filepath = os.path.join(os.getcwd(), f"{user_id}.json")  # Filename is now based on user_id
+            with open(filepath, 'w') as file:
+                json.dump(user_profile.to_dict(), file)
+            
+            messagebox.showinfo("Success", "Profile saved successfully.")
+            self.new_user_window.destroy()
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save profile: {e}")
+
 
 
     # Load an existing user profile from a JSON file, if it exists.
@@ -212,7 +205,7 @@ class MainApplication(tk.Tk):
         dependents_entry = tk.Entry(edit_window, textvariable=dependents_var)
         dependents_entry.grid(row=len(fields)+1, column=1, padx=10, pady=5)
         entries['Dependents'] = dependents_var
-
+        print("Creating new user with username:", username)
         # Save Button
         save_button = tk.Button(edit_window, text="Save", 
                                 command=lambda: self.save_user_data(user_profile, entries))
@@ -245,20 +238,18 @@ class MainApplication(tk.Tk):
 
 # UserProfile class: Represents a user/veteran profile, including personal and disability-related information.
 class UserProfile:
-    def __init__(self, username, disability_rating=0, spouse=None, children=None, 
-                 spouse_aid_attendance=False, name="", date_of_birth="", 
+    def __init__(self, user_id, name="", disability_rating=0, spouse=None, children=None, 
+                 spouse_aid_attendance=False, date_of_birth="", 
                  marital_status="", dependents=[], dod_id=""):
-        self.username = username
+        self.user_id = user_id  # refactoring from username, so it goes off their dod id number isntead
+        self.name = name
         self.disability_rating = disability_rating
         self.spouse = spouse
         self.children = children if children is not None else []
         self.spouse_aid_attendance = spouse_aid_attendance
-        self.name = name
         self.date_of_birth = date_of_birth
         self.marital_status = marital_status
         self.dependents = dependents
-        self.dod_id = dod_id
-
 
       # Method to calculate benefits based on the user's profile. Utilizes a placeholder class `CalculateBenefits`.
     def calculate_benefits(self):
