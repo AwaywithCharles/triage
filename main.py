@@ -131,12 +131,12 @@ class MainApplication(tk.Tk):
         self.spouse_name_label = Label(self.new_user_window, text="Spouse Name:")
         self.spouse_name_entry = Entry(self.new_user_window, textvariable=self.spouse_name_var)
 
-        # Add to the grid in create_new_user_dialog
+        # add to the grid in create_new_user_dialog
         tk.Label(self.new_user_window, text="Children:").grid(row=6, column=0, sticky='w')
         tk.Radiobutton(self.new_user_window, text="Children", variable=self.has_children, value=True, command=self.toggle_children_fields).grid(row=6, column=1)
         tk.Radiobutton(self.new_user_window, text="No Children", variable=self.has_children, value=False, command=self.toggle_children_fields).grid(row=6, column=2)
 
-        # Frame to dynamically add child entries
+        # frame to dynamically add child entries
         self.children_entries_frame = tk.Frame(self.new_user_window)
         self.children_entries_frame.grid(row=7, column=0, columnspan=2, sticky='ew', pady=(5,0))
 
@@ -185,21 +185,21 @@ class MainApplication(tk.Tk):
         remove_button = tk.Button(self.children_entries_frame, text="Remove", command=lambda var=child_var: self.remove_child_entry(child_entry, var))
         remove_button.grid(row=row, column=1, padx=5, pady=2)
         
-        # Append the entry, variable, and button to the list
+        # append entry, variable, and button to the list
         self.child_entries.append((child_entry, child_var, remove_button))
         
     def remove_child_entry(self, entry, var):
-        # Remove the specified entry widget and its remove button
+        # remove specified entry widget and its remove button
         entry.destroy()
-        # Find the associated remove button and destroy it
+        # find associated remove button and destroy it
         associated_button = next((button for e, v, button in self.child_entries if v == var), None)
         if associated_button:
             associated_button.destroy()
 
-        # Update the list to remove the tuple associated with the removed entry
+        # update list to remove the tuple associated with the removed entry
         self.child_entries = [(e, v, b) for e, v, b in self.child_entries if v != var]
 
-    # This method saves the new user data from the dialog/form.
+    # this method saves the new user data from the dialog/form.
     def save_new_user_data(self):
         if not self.validate_profile_data():
             return  # Stop saving if validation fails
